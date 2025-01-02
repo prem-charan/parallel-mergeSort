@@ -6,8 +6,9 @@ A high-performance, multi-threaded implementation of the Merge Sort algorithm th
 
 - **Multi-threaded Implementation**: Leverages C++11 threading for parallel processing
 - **Adaptive Threshold**: Automatically switches between parallel and sequential sorting based on input size
+- **Thread Limiting**: Uses an atomic counter to ensure that the number of active threads does not exceed the system’s hardware concurrency, preventing thread oversubscription.
 - **Memory Efficient**: In-place merging to minimize memory overhead
-- **Modern C++**: Written in C++11 with modern programming practices
+- **Thread Safety**: Mutex and atomic operations are employed to synchronize thread creation and ensure safe parallel execution.
 
 ## 🔧 Requirements
 
@@ -51,7 +52,7 @@ g++ -std=c++11 main.cpp sorting/mergeSort.cpp sorting/parallelMergeSort.cpp -o p
 | 10⁷        | 13.70         | 0.93        | 14.7x   |
 | 10⁸        | 165.40        | 12.20       | 13.5x   |
 
-> Benchmarks performed on an Intel i7-12700K (12 cores) @ 3.6GHz, 32GB RAM
+> Benchmarks performed on an AMD Ryzen 5 5600H (6 cores) @ 3.3GHz, 8GB RAM
 
 ## 🏗️ Project Structure
 
@@ -74,6 +75,6 @@ parallel-mergeSort/
 The implementation uses a hybrid approach:
 - For large arrays (>10,000 elements): Parallel processing with multiple threads
 - For smaller arrays: Standard sequential sorting
-- Thread management using C++11's standard thread library
-- Automatic thread pool sizing based on available hardware
+- The number of threads is dynamically managed using std::atomic<int> for counting active threads and std::mutex to synchronize thread creation, avoiding resource exhaustion.
+- Automatic thread pool sizing based on available hardware concurrency.
 
