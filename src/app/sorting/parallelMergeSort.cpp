@@ -11,8 +11,7 @@ ParallelMergeSort::~ParallelMergeSort() {}
 
 void ParallelMergeSort::recursiveSort(int left, int right)
 {
-
-    const int THRESHOLD = 5000;
+    const int THRESHOLD = 10000;
 
     if (right - left < THRESHOLD)
     {
@@ -24,14 +23,57 @@ void ParallelMergeSort::recursiveSort(int left, int right)
     {
         return;
     }
+
     int mid = left + (right - left) / 2;
 
-    std::thread thread_1([this, left, mid]
-                         { this->recursiveSort(left, mid); });
-    std::thread thread_2([this, mid, right]
-                         { this->recursiveSort(mid + 1, right); });
-    thread_1.join();
-    thread_2.join();
+    bool spawn_thread_1 = false;
+    bool spawn_thread_2 = false;
+
+    {
+        std::lock_guard<std::mutex> lock(thread_mutex);
+        if (active_threads < std::thread::hardware_concurrency())
+        {
+            spawn_thread_1 = true;
+            active_threads++;
+        }
+        if (active_threads < std::thread::hardware_concurrency())
+        {
+            spawn_thread_2 = true;
+            active_threads++;
+        }
+    }
+
+    std::thread thread_1, thread_2;
+
+    if (spawn_thread_1)
+    {
+        thread_1 = std::thread([this, left, mid]
+                               {
+            this->recursiveSort(left, mid);
+            active_threads--; });
+    }
+    else
+    {
+        this->recursiveSort(left, mid);
+    }
+
+    if (spawn_thread_2)
+    {
+        thread_2 = std::thread([this, mid, right]
+                               {
+            this->recursiveSort(mid + 1, right);
+            active_threads--; });
+    }
+    else
+    {
+        this->recursiveSort(mid + 1, right);
+    }
+
+    if (thread_1.joinable())
+        thread_1.join();
+    if (thread_2.joinable())
+        thread_2.join();
+
 
     std::vector<int> result;
     int i = left;
@@ -71,12 +113,12 @@ void ParallelMergeSort::recursiveSort(int left, int right)
 
 void ParallelMergeSort::sort()
 {
-    if ((*nums).size() == 0)
+    if (nums->size() == 0)
     {
         exit(1);
     }
 
     std::thread thread_1([this]
-                         { this->recursiveSort(0, (*nums).size() - 1); });
+                         { this->recursiveSort(0, nums->size() - 1); });
     thread_1.join();
 }
